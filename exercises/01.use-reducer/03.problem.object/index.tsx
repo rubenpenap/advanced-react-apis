@@ -1,21 +1,17 @@
 import { useReducer, useState } from 'react'
 import * as ReactDOM from 'react-dom/client'
 
-// 🦺 make a type called "State" which is an object with a count property as a number
-// 🦺 make a type called "Action" which is the same as the State type
-// 🐨 update this function to accept "state" (type "State") and an
-// "action" (type "Action")
-// 🐨 the function should merge properties from the state and the action and
-// return that new object
-const countReducer = (count: number, change: number) => count + change
+type State = {
+	count: number
+}
+type Action = Partial<State>
+const countReducer = (state: State, action: Action) => ({ ...state, ...action })
 
 function Counter({ initialCount = 0, step = 1 }) {
-	// 🐨 change this to "state" and "setState" and update the second argument
-	// to be an object with a count property.
-	const [count, changeCount] = useReducer(countReducer, initialCount)
-	// 🐨 update these calls to call setState with an object and a count property
-	const increment = () => changeCount(step)
-	const decrement = () => changeCount(-step)
+	const [state, setState] = useReducer(countReducer, { count: initialCount })
+	const { count } = state
+	const increment = () => setState({ count: count + step })
+	const decrement = () => setState({ count: count - step })
 	return (
 		<div className="counter">
 			<output>{count}</output>
