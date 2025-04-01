@@ -16,13 +16,12 @@ function App() {
 
 	useEffect(() => {
 		function updateSearchParams() {
-			// 🐨 switch this to use the callback form and in the callback:
-			// 1. accept the prevParams
-			// 2. create newParams from window.location.search
-			// 3. compare the prevParams.toString() to newParams.toString()
-			// 4. if they're the same, return prevParams
-			// 5. if they're different, return newParams
-			setSearchParamsState(new URLSearchParams(window.location.search))
+			setSearchParamsState((prevParams: URLSearchParams) => {
+				const newParams = new URLSearchParams(window.location.search)
+				return prevParams.toString() === newParams.toString()
+					? prevParams
+					: newParams
+			})
 		}
 		window.addEventListener('popstate', updateSearchParams)
 		return () => window.removeEventListener('popstate', updateSearchParams)
@@ -31,12 +30,11 @@ function App() {
 	function setSearchParams(...args: Parameters<typeof setGlobalSearchParams>) {
 		console.log('setting search params')
 		const searchParams = setGlobalSearchParams(...args)
-		// 🐨 switch this to use the callback form and in the callback:
-		// 1. accept the prevParams
-		// 2. compare the prevParams.toString() to searchParams.toString()
-		// 3. if they're the same, return prevParams
-		// 4. if they're different, return searchParams
-		setSearchParamsState(searchParams)
+		setSearchParamsState((prevParams) => {
+			return prevParams.toString() === searchParams.toString()
+				? prevParams
+				: searchParams
+		})
 		return searchParams
 	}
 
