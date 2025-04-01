@@ -11,9 +11,7 @@ const getQueryParam = (params: URLSearchParams) => params.get('query') ?? ''
 
 // 🐨 create a function called useSearchParams here and move much of what's
 // below into this hook.
-
-function App() {
-	// 🐨 move everything from here to the next 🐨 into the new function
+function useSearchParams() {
 	const [searchParams, setSearchParamsState] = useState(
 		() => new URLSearchParams(window.location.search),
 	)
@@ -40,10 +38,11 @@ function App() {
 		})
 		return searchParams
 	}
-	// 🐨 move everything from the previous 🐨 to here into the new function
+	return [searchParams, setSearchParams] as const
+}
 
-	// 🐨 call useSearchParams to get the searchParams and setSearchParams functions
-
+function App() {
+	const [searchParams, setSearchParams] = useSearchParams()
 	const query = getQueryParam(searchParams)
 
 	return (
