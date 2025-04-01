@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useReducer } from 'react'
 import * as ReactDOM from 'react-dom/client'
 import {
 	calculateNextValue,
@@ -55,31 +55,59 @@ const defaultState: GameState = {
 
 const localStorageKey = 'tic-tac-toe'
 
-// 🦺 Create a GameAction type here which supports all three types of state changes
-// that can happen for our reducer: SELECT_SQUARE, RESTART, and SELECT_STEP.
+function getInitialGameState() {
+	let localStorageValue
+	try {
+		localStorageValue = JSON.parse(
+			window.localStorage.getItem(localStorageKey) ?? 'null',
+		)
+	} catch {}
+	return isValidGameState(localStorageValue) ? localStorageValue : defaultState
+}
 
-// 🐨 Create a gameStateReducer function which accepts the GameState and GameAction
-// and handle all three types of state changes.
-// 💰 you can borrow lots of the logic from the component below in your implementation
+type GameAction =
+	| { type: 'SELECT_SQUARE'; index: number }
+	| { type: 'SELECT_STEP'; step: number }
+	| { type: 'RESTART' }
 
-// 🐨 Create a getInitialGameState function here which returns the initial game
-// state (move this from the useState callback below)
+function gameStateReducer(state: GameState, action: GameAction) {
+	switch (action.type) {
+		case 'SELECT_SQUARE': {
+			const { currentStep, history } = state
+			const newHistory = history.slice(0, currentStep + 1)
+			const currentSquares = history[currentStep]
+			const winner = calculateWinner(currentSquares)
+
+			if (winner || currentSquares[action.index]) return state
+
+			const squares = currentSquares.with(
+				action.index,
+				calculateNextValue(history[currentStep]),
+			)
+
+			return {
+				history: [...newHistory, squares],
+				currentStep: newHistory.length,
+			}
+		}
+		case 'SELECT_STEP': {
+			return { ...state, currentStep: action.step }
+		}
+		case 'RESTART': {
+			return defaultState
+		}
+		default:
+			throw new Error(`Unhandled action type: ${action}`)
+	}
+}
 
 function App() {
-	// 🐨 change this to use useReducer with the gameStateReducer and the getInitialGameState function
-	const [state, setState] = useState<GameState>(() => {
-		let localStorageValue
-		try {
-			localStorageValue = JSON.parse(
-				window.localStorage.getItem(localStorageKey) ?? 'null',
-			)
-		} catch {
-			// something is wrong in localStorage, so don't use it
-		}
-		return isValidGameState(localStorageValue)
-			? localStorageValue
-			: defaultState
-	})
+	const [state, dispatch] = useReducer(
+		gameStateReducer,
+		null,
+		getInitialGameState,
+	)
+
 	const currentSquares = state.history[state.currentStep]
 
 	const winner = calculateWinner(currentSquares)
@@ -91,44 +119,21 @@ function App() {
 	}, [state])
 
 	function selectSquare(index: number) {
-		// 🐨 move this logic to the reducer
-		// then call the dispatch function with the proper type
-		if (winner || currentSquares[index]) return
-
-		setState((previousState) => {
-			const { currentStep, history } = previousState
-			const newHistory = history.slice(0, currentStep + 1)
-			const squares = history[currentStep].with(index, nextValue)
-
-			return {
-				history: [...newHistory, squares],
-				currentStep: newHistory.length,
-			}
-		})
+		dispatch({ type: 'SELECT_SQUARE', index })
 	}
 
 	function restart() {
-		// 🐨 update this to use the dispatch function with the proper type
-		setState(defaultState)
+		dispatch({ type: 'RESTART' })
 	}
 
 	const moves = state.history.map((_stepSquares, step) => {
 		const desc = step ? `Go to move number ${step}` : 'Go to game start'
 		const isCurrentStep = step === state.currentStep
 		const label = isCurrentStep ? `${desc} (current)` : desc
-		// NOTE: the "step" is actually the "index" which normally you don't want to
-		// use as the "key" prop. However, in this case, the index is effectively
-		// the "id" of the step in history, so it is correct.
 		return (
 			<li key={step}>
 				<button
-					// 🐨 update this to use the dispatch function with the proper type
-					onClick={() =>
-						setState((previousState) => ({
-							...previousState,
-							currentStep: step,
-						}))
-					}
+					onClick={() => dispatch({ type: 'SELECT_STEP', step })}
 					aria-disabled={isCurrentStep}
 					aria-label={label}
 					aria-current={isCurrentStep ? 'step' : undefined}
@@ -158,8 +163,3 @@ function App() {
 const rootEl = document.createElement('div')
 document.body.append(rootEl)
 ReactDOM.createRoot(rootEl).render(<App />)
-
-/*
-eslint
-	@typescript-eslint/no-unused-vars: "off",
-*/
