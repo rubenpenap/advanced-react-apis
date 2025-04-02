@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, createContext, use } from 'react'
 import * as ReactDOM from 'react-dom/client'
 import {
 	type BlogPost,
@@ -7,15 +7,21 @@ import {
 } from '#shared/blog-posts'
 import { setGlobalSearchParams } from '#shared/utils'
 
-// 🦺 create a SearchParamsTuple type here that's a readonly array of two elements:
-// - the first element is a URLSearchParams instance
-// - the second element is typeof setGlobalSearchParams
-// 🐨 create a SearchParamsContext that is of this type
-// 💰 let's start with this as the default value (we'll improve it next):
-// [new URLSearchParams(window.location.search), setGlobalSearchParams]
+type SearchParamsTuple = readonly [
+	URLSearchParams,
+	typeof setGlobalSearchParams,
+]
 
-// 🐨 change this to SearchParamsProvider and accept children
-export function useSearchParams() {
+const SearchParamsContext = createContext<SearchParamsTuple>([
+	new URLSearchParams(window.location.search),
+	setGlobalSearchParams,
+])
+
+export function SearchParamsProvider({
+	children,
+}: Readonly<{
+	children: React.ReactNode
+}>) {
 	const [searchParams, setSearchParamsState] = useState(
 		() => new URLSearchParams(window.location.search),
 	)
@@ -46,23 +52,29 @@ export function useSearchParams() {
 		[],
 	)
 
-	// 🐨 instead of returning this, render the SearchParamsContext and
-	// provide this tuple as the value
-	// 💰 make sure to render the children as well!
-	return [searchParams, setSearchParams] as const
+	const searchParamsTuple = [searchParams, setSearchParams] as const
+
+	return (
+		<SearchParamsContext value={searchParamsTuple}>
+			{children}
+		</SearchParamsContext>
+	)
 }
 
-// 🐨 create a useSearchParams hook here that returns use(SearchParamsContext)
+export function useSearchParams() {
+	return use(SearchParamsContext)
+}
 
 const getQueryParam = (params: URLSearchParams) => params.get('query') ?? ''
 
 function App() {
 	return (
-		// 🐨 wrap this in the SearchParamsProvider
-		<div className="app">
-			<Form />
-			<MatchingPosts />
-		</div>
+		<SearchParamsProvider>
+			<div className="app">
+				<Form />
+				<MatchingPosts />
+			</div>
+		</SearchParamsProvider>
 	)
 }
 
