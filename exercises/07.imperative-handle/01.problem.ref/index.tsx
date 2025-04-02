@@ -1,16 +1,19 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useImperativeHandle, useLayoutEffect, useRef, useState } from 'react'
 import * as ReactDOM from 'react-dom/client'
 import { allMessages } from './messages'
 
-// 💰 this'll be handy
-// type ScrollableImperativeAPI = {
-// 	scrollToTop: () => void
-// 	scrollToBottom: () => void
-// }
+type ScrollableImperativeAPI = {
+	scrollToTop: () => void
+	scrollToBottom: () => void
+}
 
-// 🐨 Accept `scrollableRef` as a prop here
-// 🦺 it's type should be React.RefObject<ScrollableImperativeAPI | null>
-function Scrollable({ children }: { children: React.ReactNode }) {
+function Scrollable({
+	children,
+	scrollableRef,
+}: Readonly<{
+	children: React.ReactNode
+	scrollableRef: React.RefObject<ScrollableImperativeAPI | null>
+}>) {
 	const containerRef = useRef<HTMLDivElement>(null)
 
 	useLayoutEffect(() => {
@@ -27,14 +30,10 @@ function Scrollable({ children }: { children: React.ReactNode }) {
 		containerRef.current.scrollTop = containerRef.current.scrollHeight
 	}
 
-	// 🐨 call useImperativeHandle here with the scrollableRef and a callback function
-	// that returns an object with scrollToTop and scrollToBottom
-	// 🦉 you can omit the dependency array argument here. Re-assigning new
-	// functions to the ref object every render won't cause any issues in our case
-	// 💯 for extra credit, try adding the functions as dependencies and see how
-	// that spiders out into having to add useCallback around the functions. So
-	// annoying! Maybe you can think of another way we can have the dependency
-	// array without having to use useCallback. 🤔
+	useImperativeHandle(scrollableRef, () => ({
+		scrollToTop,
+		scrollToBottom,
+	}))
 
 	return (
 		<div ref={containerRef} role="log">
@@ -44,7 +43,7 @@ function Scrollable({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-	// 🐨 create a scrollableRef with useRef that is a ScrollableImperativeAPI type (initialize it to null)
+	const scrollableRef = useRef<ScrollableImperativeAPI>(null)
 	const [messages, setMessages] = useState(allMessages.slice(0, 8))
 	function addMessage() {
 		if (messages.length < allMessages.length) {
@@ -57,11 +56,8 @@ function App() {
 		}
 	}
 
-	// 🐨 make this function call the scrollToTop function on the ref
-	const scrollToTop = () => {}
-
-	// 🐨 make this function call the scrollToBottom function on the ref
-	const scrollToBottom = () => {}
+	const scrollToTop = () => scrollableRef.current?.scrollToTop()
+	const scrollToBottom = () => scrollableRef.current?.scrollToBottom()
 
 	return (
 		<div className="messaging-app">
@@ -73,8 +69,7 @@ function App() {
 			<div>
 				<button onClick={scrollToTop}>scroll to top</button>
 			</div>
-			{/* 🐨 add scrollableRef prop here */}
-			<Scrollable>
+			<Scrollable scrollableRef={scrollableRef}>
 				{messages.map((message, index, array) => (
 					<div key={message.id}>
 						<strong>{message.author}</strong>: <span>{message.content}</span>
